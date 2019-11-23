@@ -3,27 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/Shopify/sarama"
+	"github.com/ut0mt8/kalag/lag"
 	"strings"
-	"time"
 )
-
-func getOffsetTimestamp(consumer sarama.Consumer, topic string, partition int32, offset int64) (time.Time, error) {
-	cp, err := consumer.ConsumePartition(topic, partition, offset)
-	if nil != err {
-		return time.Time{}, fmt.Errorf("cannot consumme partition: ", err)
-	}
-
-	select {
-	case <-time.After(500 * time.Millisecond):
-		return time.Time{}, fmt.Errorf("no message in topic")
-	case consumerError := <-cp.Errors():
-		return time.Time{}, fmt.Errorf("consumer error: ", consumerError.Err)
-	case msg := <-cp.Messages():
-		return msg.Timestamp, nil
-	}
-
-	return time.Time{}, fmt.Errorf("unknow error")
-}
 
 func main() {
 
@@ -47,7 +29,7 @@ func main() {
 		}
 
 		partitions, _ := consumer.Partitions(topic)
-		ts, err := getOffsetTimestamp(consumer, topic, partitions[0], sarama.OffsetOldest)
+		ts, err := lag.GetOffsetTimestamp(consumer, topic, partitions[0], sarama.OffsetOldest)
 		if err != nil {
 			fmt.Printf("cannot get oldest message in topic %s : %v\n", topic, err)
 		} else {
