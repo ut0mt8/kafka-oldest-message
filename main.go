@@ -29,13 +29,12 @@ func main() {
 		}
 
 		partitions, _ := consumer.Partitions(topic)
-		ts, err := lag.GetOffsetTimestamp(consumer, topic, partitions[0], sarama.OffsetOldest)
+		ts, err := lag.GetOffsetTimestamp(brokers, config, topic, partitions[0], sarama.OffsetOldest)
 		if err != nil {
 			fmt.Printf("cannot get oldest message in topic %s : %v\n", topic, err)
 		} else {
 			fmt.Printf("oldest message in topic %s at %v\n", topic, ts)
 		}
 	}
-
 	consumer.Close()
 }
