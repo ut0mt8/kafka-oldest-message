@@ -11,30 +11,35 @@ func main() {
 
 	config := sarama.NewConfig()
 	config.Version = sarama.V2_1_0_0
-	config.Consumer.Offsets.AutoCommit.Enable = false
-	config.Consumer.Return.Errors = true
 
 	brokers := []string{"localhost:9092"}
 
-	consumer, err := sarama.NewConsumer(brokers, config)
+	client, err := sarama.NewClient(brokers, config)
 	if err != nil {
 		panic(err)
 	}
 
-	topics, _ := consumer.Topics()
+	topics, _ := client.Topics()
 
 	for _, topic := range topics {
 		if strings.Contains(topic, "__consumer_offsets") {
 			continue
 		}
 
-		partitions, _ := consumer.Partitions(topic)
-		ts, err := lag.GetOffsetTimestamp(brokers, config, topic, partitions[0], sarama.OffsetOldest)
-		if err != nil {
-			fmt.Printf("cannot get oldest message in topic %s : %v\n", topic, err)
-		} else {
-			fmt.Printf("oldest message in topic %s at %v\n", topic, ts)
+		partitions, _ := client.Partitions(topic)
+		for _, part := range partitions {
+			old, _ := client.GetOffset(topic, part, sarama.OffsetOldest)
+
+			leader, _ := client.Leader(topic, part)
+			if ok, _ := leader.Connected(); !ok {
+				leader.Open(client.Config())
+			}
+
+			ts, err := lag.GetTimestamp(leader, topic, part, old)
+			if err == nil {
+				fmt.Printf("oldest message in topic %s partition %d at %v\n", topic, part, ts)
+			}
 		}
 	}
-	consumer.Close()
+	client.Close()
 }

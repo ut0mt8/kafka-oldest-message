@@ -1,2 +1,2 @@
 # kafka-oldest-message
-Small program to check the oldest message in a topic/partition
+Small program to print the oldest message in each topic/partition if any
